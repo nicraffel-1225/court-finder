@@ -2,5 +2,8 @@
 
 Dated record of choices Nic has made about this project. Newest entries at the bottom.
 
-## 2026-11-01 — Approved providers for public JSON / page reading
-- Park Sports: approved for public JSON endpoint / page reading (no login, no CAPTCHA bypass), subject to the polite-fetching rules in CLAUDE.md (max 1 req/sec/host, no runs 06:55-07:15).
+## 29 October 2026 — Data sourcing: Park Sports approved for page reading
+
+This is a personal-use tool. Reading public availability pages (rung 3–4) is
+approved for Park Sports: public pages only, no login, hourly at most. Better
+stays on its open feed.
