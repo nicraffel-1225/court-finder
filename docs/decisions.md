@@ -16,3 +16,15 @@ courses, not availability. ClubSpark venues (~207 in London, the single
 biggest chunk of coverage) launch as link-only: shown on the map with a
 "check availability" link, no live times. No scraping of ClubSpark's booking
 pages without a separate decision gate of its own.
+
+## 5 November 2026 — ClubSpark approved for page reading
+
+Checked `clubspark.lta.org.uk` by hand (see `docs/data-sources.md`): booking
+pages show a full court-by-court, hour-by-hour availability grid with no
+login (`role=guest` in the URL). The JSON API behind the page is protected
+by Cloudflare and will not be called directly — no bypassing that. Approved:
+page reading only, via a real rendered browser (Playwright), same terms as
+Park Sports — public pages only, no login, no bypassing rate limits or bot
+protection. ClubSpark's terms restrict passing *bookings* to third parties;
+this project only ever shows read-only availability and links out to book,
+never books on anyone's behalf.

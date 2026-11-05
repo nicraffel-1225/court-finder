@@ -34,8 +34,9 @@ Explain what changed in plain English and say exactly how to check it by hand.
 - Preference order: OpenActive feed > official/partner API > public JSON endpoint
   > HTML scraping > link-only listing.
 - Public JSON and page reading only for providers marked approved in
-  docs/decisions.md (currently: Park Sports). Public pages only, at most one
-  request every 2 seconds, and no runs between 06:55 and 07:15 (slot release).
+  docs/decisions.md (currently: Park Sports, ClubSpark). Public pages only, at
+  most one request every 2 seconds, and no runs between 06:55 and 07:15
+  (slot release).
 - Never log in, never use anyone's credentials, never bypass CAPTCHAs, rate limits
   or robots.txt.
 - Polite fetching: User-Agent "LondonCourtFinder/0.1 (+<your contact email>)",
