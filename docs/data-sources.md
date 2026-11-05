@@ -48,4 +48,19 @@ Two specific venues Nic pointed at, checked by hand rather than by the script ab
   appeared after paging in a few pages further. Everyone Active isn't in the
   build guide's original provider table, but this is a second real, open,
   London tennis source alongside Better and Tower Hamlets Council.
+- **ClubSpark's booking pages are readable without logging in.** Checked
+  `clubspark.lta.org.uk/WestHamPark/Booking/BookByDate` (and the LTA's own
+  "Book a court" search links to several more London park venues: Queen's
+  Park/Brent, Larkhall Park/Lambeth, Greenwich parks, Sheen Common, Brook
+  Green). The page shows a full grid, every court, every hour, price vs.
+  "Booked" — URL even says `role=guest`. **But** the JSON endpoint behind it
+  (`clubspark.lta.org.uk/v0/VenueBooking/<venue>/GetVenueSessions`) is
+  protected by Cloudflare: a direct request gets a 403 "Sorry, you have been
+  blocked" page, not data. We won't try to get past that (same rule as not
+  bypassing a CAPTCHA). A real browser (Playwright) rendering the actual
+  page is the only approach that works here — same as Park Sports — it
+  just needs its own decision-gate sign-off in `docs/decisions.md`, since
+  only Park Sports is currently approved for page reading. ClubSpark's own
+  terms also restrict passing *bookings* to third parties; read-only
+  availability display is different, but worth knowing before approving it.
 
