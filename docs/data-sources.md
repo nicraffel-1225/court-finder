@@ -23,3 +23,29 @@ Last run: 2026-11-05
 - **Playtomic**: not present in the OpenActive catalogue at all.
 - This only checked Bookteq-hosted sites whose hostname names a London borough (Bookteq hosts ~80 small clubs nationwide; checking every one of them for every provider would be impolite for a one-off discovery pass).
 
+## Hand-checked findings (5 November 2026)
+
+Two specific venues Nic pointed at, checked by hand rather than by the script above.
+
+- **Park Sports / Royal Parks has moved booking platforms.** Their site
+  (`sportsandleisure.royalparks.org.uk`) now books through a SaaS called Flow
+  (`sportsandleisureroyalparks.bookings.flow.onl`), not `parksports.co.uk` as
+  this guide assumed. Confirmed in a real browser, no login needed: Hyde Park
+  Courts showed real court-by-court tennis slots ("Tennis-60min", "2 spaces
+  available" / "Fully booked") for a date a week out. The page loads this
+  from `https://flow.onl/api/activities/venue/<slug>/activity/<sport>/v2/times`,
+  but that endpoint 404s unless the request looks like it's coming from the
+  booking page itself — it appears to check the browser is real, so we won't
+  spoof headers to call it directly (same rule as not bypassing a CAPTCHA).
+  Phase 7a's plan — read the rendered page with Playwright — is still the
+  right approach; it just needs the new site, not the old one.
+- **Everyone Active has a real tennis court at Paddington Recreation
+  Ground** (W9 1PF, Maida Vale): "Tennis - Floodlit 50 Minutes" and "Tennis -
+  Synthetic Court 50 Minutes", confirmed in their live OpenActive feed
+  (`https://opendata.leisurecloud.live/api/feeds/EveryoneActive-live-facility-uses`).
+  It didn't show up in the automated check above because that only reads the
+  feed's first page (politeness budget for a one-off sweep); Paddington only
+  appeared after paging in a few pages further. Everyone Active isn't in the
+  build guide's original provider table, but this is a second real, open,
+  London tennis source alongside Better and Tower Hamlets Council.
+

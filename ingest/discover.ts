@@ -30,6 +30,7 @@ const NAMED_PATTERNS: Record<string, RegExp> = {
   "Camden Active": /camden/i,
   "All Star / Enable (Wandsworth)": /allstar|\benable\b|wandsworth/i,
   "Playtomic": /playtomic/i,
+  "Everyone Active": /everyone\s*active/i,
 };
 
 // Playfinder/Bookteq hosts hundreds of unrelated clubs nationwide (schools,
@@ -174,8 +175,13 @@ async function main() {
   // Narrow down to candidates by URL alone (no extra requests), since
   // fetching all ~170 dataset sites just to read their name would blow the
   // politeness budget for a one-off research pass.
+  // Skip obvious dev/staging mirrors (e.g. dev.myeveryoneactive.com) — we
+  // want production data, not whatever's sitting in a test environment.
+  const isDevOrStaging = (url: string) => /^(dev|staging|test|uat)[.-]/i.test(hostnameOf(url));
+
   const candidates: CandidateSite[] = [];
   for (const url of datasetSiteUrls) {
+    if (isDevOrStaging(url)) continue;
     const named = matchedNamedProvider(url);
     if (named) {
       candidates.push({ url, reason: `named provider: ${named}` });
