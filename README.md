@@ -19,8 +19,26 @@ resells a court, and never logs in on anyone's behalf.
 
 ## Status
 
-**Phase 0 (project skeleton) is done.** The site is a working, empty Next.js app —
-there's no real court data or search yet. That starts in Phase 1.
+**Phase 0 and Phase 1 are done.** Phase 2 (the database) is in progress: the
+schema exists as migrations in `supabase/migrations/`, but needs a real
+Supabase project to apply them to — see below.
+
+## Database setup (Phase 2)
+
+1. Create a free project at [supabase.com](https://supabase.com) (region:
+   **London**, so the database is close to where the site runs).
+2. In the new project, open **SQL Editor** and run each file in
+   `supabase/migrations/` in order (they're numbered) — paste one in, hit
+   Run, then the next.
+3. In **Settings -> API**, copy the Project URL, the `anon` `public` key and
+   the `service_role` key.
+4. Copy `.env.local.example` to `.env.local` and paste those three values in.
+   Never paste the `service_role` key anywhere else (not in chat, not in
+   git) — it bypasses all the read-only restrictions.
+5. Run `npm test` — the Phase 2 database tests (in `tests/database.test.ts`)
+   will now run for real instead of skipping, checking that search finds a
+   nearby test venue, doesn't find a far-away one, and that the public key
+   can't write to the database.
 
 ## Running it locally
 
