@@ -1,0 +1,33 @@
+{
+  "venueDetails": [
+    {
+      "name": "Court 1",
+      "order": 1,
+      "id": "10ec0eb8-4a90-4272-be58-798a8c9eb59d",
+      "type": "Outdoor",
+      "surface": "Tarmac",
+      "availableSlots": [
+        {
+          "slotId": "https://clubspark.lta.org.uk/slots/10ec0eb8-4a90-4272-be58-798a8c9eb59d-20261111090000-20261111100000",
+          "startTime": "2026-11-11T09:00:00",
+          "endTime": "2026-11-11T10:00:00",
+          "price": 12.0
+        },
+        {
+          "slotId": "https://clubspark.lta.org.uk/slots/10ec0eb8-4a90-4272-be58-798a8c9eb59d-20261111100000-20261111110000",
+          "startTime": "2026-11-11T10:00:00",
+          "endTime": "2026-11-11T11:00:00",
+          "price": 12.0
+        }
+      ]
+    },
+    {
+      "name": "Court 2",
+      "order": 2,
+      "id": "0462dc4f-343f-4da6-9a55-6c02e01e371b",
+      "type": "Outdoor",
+      "surface": "Tarmac",
+      "availableSlots": []
+    }
+  ]
+}

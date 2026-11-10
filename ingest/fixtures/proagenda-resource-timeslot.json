@@ -1,0 +1,17 @@
+[
+  {
+    "startDate": "2026-11-13T07:00:00",
+    "endDate": "2026-11-13T08:00:00",
+    "resources": [{ "name": "Outdoor Clay Court", "amount": 4 }]
+  },
+  {
+    "startDate": "2026-11-13T08:00:00",
+    "endDate": "2026-11-13T09:00:00",
+    "resources": [{ "name": "Outdoor Clay Court", "amount": 0 }]
+  },
+  {
+    "startDate": "2026-11-13T09:00:00",
+    "endDate": "2026-11-13T10:00:00",
+    "resources": [{ "name": "Outdoor Clay Court", "amount": 3 }]
+  }
+]

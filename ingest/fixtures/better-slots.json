@@ -1,0 +1,115 @@
+{
+  "next": "https://better-admin.org.uk/api/openactive/better/slots?afterTimestamp=1674021795&afterId=activity%3A28840275",
+  "items": [
+    {
+      "state": "updated",
+      "kind": "IndividualFacilityUse/Slot",
+      "id": "activity:11337228",
+      "modified": 1648057885,
+      "data": {
+        "@type": "Slot",
+        "@context": [
+          "https://openactive.io/",
+          "https://openactive.io/ns-beta"
+        ],
+        "@id": "https://better-admin.org.uk/api/openactive/better/slots/activity:11337228",
+        "identifier": 11337228,
+        "startDate": "2022-04-01T11:20:00+01:00",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Adult",
+            "priceCurrency": "GBP",
+            "price": 10,
+            "ageRestriction": {
+              "@type": "QuantitativeValue",
+              "maxValue": 110,
+              "minValue": 16
+            }
+          }
+        ],
+        "endDate": "2022-04-01T12:20:00+01:00",
+        "duration": "PT1H",
+        "isOpenBookingWithCustomerAccountAllowed": true,
+        "facilityUse": "https://better-admin.org.uk/api/openactive/better/facility-uses/activity_recurrence_group:12826/individual-facility-uses/5bddbceae8f9260f15311f451654d605",
+        "maximumUses": 8,
+        "remainingUses": 8
+      }
+    },
+    {
+      "state": "updated",
+      "kind": "IndividualFacilityUse/Slot",
+      "id": "activity:13028736",
+      "modified": 1648057885,
+      "data": {
+        "@type": "Slot",
+        "@context": [
+          "https://openactive.io/",
+          "https://openactive.io/ns-beta"
+        ],
+        "@id": "https://better-admin.org.uk/api/openactive/better/slots/activity:13028736",
+        "identifier": 13028736,
+        "startDate": "2022-05-04T08:20:00+01:00",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Adult",
+            "priceCurrency": "GBP",
+            "price": 10,
+            "ageRestriction": {
+              "@type": "QuantitativeValue",
+              "maxValue": 110,
+              "minValue": 16
+            }
+          }
+        ],
+        "endDate": "2022-05-04T08:30:00+01:00",
+        "duration": "PT10M",
+        "isOpenBookingWithCustomerAccountAllowed": true,
+        "facilityUse": "https://better-admin.org.uk/api/openactive/better/facility-uses/activity_recurrence_group:11612/individual-facility-uses/d0c1f39d478314ed0df3d51f8b840b10",
+        "maximumUses": 8,
+        "remainingUses": 8
+      }
+    },
+    {
+      "state": "updated",
+      "kind": "IndividualFacilityUse/Slot",
+      "id": "activity:13029606",
+      "modified": 1648057885,
+      "data": {
+        "@type": "Slot",
+        "@context": [
+          "https://openactive.io/",
+          "https://openactive.io/ns-beta"
+        ],
+        "@id": "https://better-admin.org.uk/api/openactive/better/slots/activity:13029606",
+        "identifier": 13029606,
+        "startDate": "2022-05-04T19:20:00+01:00",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Adult",
+            "priceCurrency": "GBP",
+            "price": 10,
+            "ageRestriction": {
+              "@type": "QuantitativeValue",
+              "maxValue": 110,
+              "minValue": 16
+            }
+          }
+        ],
+        "endDate": "2022-05-04T20:10:00+01:00",
+        "duration": "PT50M",
+        "isOpenBookingWithCustomerAccountAllowed": true,
+        "facilityUse": "https://better-admin.org.uk/api/openactive/better/facility-uses/activity_recurrence_group:6265/individual-facility-uses/84426017088eddd1523f14721e6bcf49",
+        "maximumUses": 6,
+        "remainingUses": 6
+      }
+    },
+    {
+      "state": "deleted",
+      "kind": "IndividualFacilityUse/Slot",
+      "id": "activity:99999999"
+    }
+  ]
+}
