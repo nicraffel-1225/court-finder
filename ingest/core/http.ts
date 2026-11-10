@@ -6,8 +6,7 @@
 // behind a single slow one, and retries a failed request a few times with
 // an increasing delay before giving up.
 
-export const USER_AGENT =
-  "LondonCourtFinder/0.1 (+https://github.com/nicraffel-1225/court-finder)";
+export const USER_AGENT = "LondonCourtFinder/0.1 (+mailto:courtwatch.ldn@gmail.com)";
 
 const MIN_INTERVAL_MS = 1000;
 const MAX_RETRIES = 3;

@@ -11,11 +11,9 @@ import { writeFileSync } from "node:fs";
 const CATALOGUE_COLLECTION_URL =
   "https://openactive.io/data-catalogs/data-catalog-collection.jsonld";
 
-// Identifies this script to the sites it reads, without putting a personal
-// email in a public User-Agent header. Swap the URL for your own contact
-// if you'd rather providers see that instead.
-const USER_AGENT =
-  "LondonCourtFinder/0.1 (+https://github.com/nicraffel-1225/court-finder)";
+// Identifies this script to the sites it reads. A throwaway address, not a
+// personal one — this repo is public (portfolio project).
+const USER_AGENT = "LondonCourtFinder/0.1 (+mailto:courtwatch.ldn@gmail.com)";
 
 // Named providers from docs/BUILD_GUIDE.md's provider table, matched against
 // a dataset site's URL or publisher name.
