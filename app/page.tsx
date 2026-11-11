@@ -1,5 +1,6 @@
+import { Suspense } from "react";
 import { LINK_ONLY_VENUES } from "@/lib/courts/linkOnly";
-import { getLtaVenues } from "@/lib/courts/lta";
+import { getLtaVenue, LTA_VENUES, type LtaVenueConfig } from "@/lib/courts/lta";
 import { getDukesMeadowsVenue } from "@/lib/courts/proagenda";
 import type { CourtSlot, CourtVenue } from "@/lib/courts/types";
 
@@ -33,8 +34,10 @@ function VenueCard({ venue }: { venue: CourtVenue }) {
         <p className="venue-empty">No free slots found in the next 8 days.</p>
       ) : (
         days.map(([day, slots]) => (
-          <div key={day} className="venue-day">
-            <h3>{day}</h3>
+          <details key={day} className="venue-day">
+            <summary>
+              {day} <span className="slot-count">({slots.length} free)</span>
+            </summary>
             <ul className="slot-list">
               {slots.map((slot) => (
                 <li key={`${slot.facilityName}-${slot.startAt}`}>
@@ -45,7 +48,7 @@ function VenueCard({ venue }: { venue: CourtVenue }) {
                 </li>
               ))}
             </ul>
-          </div>
+          </details>
         ))
       )}
       <a className="book-link" href={venue.bookingUrl} target="_blank" rel="noopener noreferrer">
@@ -55,18 +58,39 @@ function VenueCard({ venue }: { venue: CourtVenue }) {
   );
 }
 
-export default async function Home() {
-  const [ltaVenues, dukesMeadows] = await Promise.all([getLtaVenues(), getDukesMeadowsVenue()]);
-  const liveVenues = [...ltaVenues, dukesMeadows];
+function VenueSkeleton({ name }: { name: string }) {
+  return (
+    <article className="venue-card venue-card--loading">
+      <h2>{name}</h2>
+      <p className="venue-empty">Checking live availability…</p>
+    </article>
+  );
+}
 
+async function LtaVenueSection({ venueConfig }: { venueConfig: LtaVenueConfig }) {
+  const venue = await getLtaVenue(venueConfig);
+  return <VenueCard venue={venue} />;
+}
+
+async function DukesMeadowsSection() {
+  const venue = await getDukesMeadowsVenue();
+  return <VenueCard venue={venue} />;
+}
+
+export default function Home() {
   return (
     <main className="page">
       <h1>London Court Finder</h1>
       <p className="intro">Live availability for a handful of courts, checked just now. We never book for you.</p>
 
-      {liveVenues.map((venue) => (
-        <VenueCard key={venue.name} venue={venue} />
+      {LTA_VENUES.map((venueConfig) => (
+        <Suspense key={venueConfig.venueId} fallback={<VenueSkeleton name={venueConfig.name} />}>
+          <LtaVenueSection venueConfig={venueConfig} />
+        </Suspense>
       ))}
+      <Suspense fallback={<VenueSkeleton name="Dukes Meadows" />}>
+        <DukesMeadowsSection />
+      </Suspense>
 
       <h2 className="link-only-heading">Other nearby courts (no live times yet)</h2>
       {LINK_ONLY_VENUES.map((venue) => (

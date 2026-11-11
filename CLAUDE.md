@@ -32,12 +32,23 @@ Explain what changed in plain English and say exactly how to check it by hand.
    integer pence.
 4. A page that fetches live data is dynamic (`export const dynamic = "force-dynamic"`), not
    prerendered — provider results change constantly and must never be baked in at build time.
+   Each venue streams in independently (its own `<Suspense>` boundary around a small async
+   component), so the page shell appears immediately and venues fill in as each one's fetch
+   finishes, instead of the whole page blocking behind one big `Promise.all`.
 5. Treat every provider response as an untrusted boundary: check the shape before using it
    (e.g. confirm an expected array really is one), and let one bad day/court/venue fail
    gracefully (skip it, don't crash the whole page) rather than throwing.
 6. Secrets live in .env.local and Vercel env vars, never in code or git.
 7. Every provider module has tests against saved fixtures in its own fixtures/ folder. Tests
    never touch the network.
+8. Each `getXVenue()` is wrapped in a short in-memory cache (`lib/courts/cache.ts`, ~2 minutes)
+   — see the "cache responses" rule below. It's per-process, not shared/persistent: fine for
+   its purpose (an impatient repeat check shouldn't re-hit every real site), not a substitute
+   for a real data store if this ever needs one again. The same cache also de-duplicates a
+   fetch already in flight (e.g. a page refresh before the previous load finished joins that
+   one instead of starting a second, competing fetch) — without this, an abandoned load's
+   fetches kept running and kept taking their turn on the per-host throttle anyway, so
+   refreshing mid-load made things slower, not faster.
 
 ## Data sourcing rules
 - Preference order: OpenActive feed > official/partner API > public JSON endpoint
@@ -50,11 +61,17 @@ Explain what changed in plain English and say exactly how to check it by hand.
   or robots.txt. If a provider's own robots.txt blocks the only page/endpoint that shows
   availability, that venue is link-only — don't look for a workaround.
 - Polite fetching: User-Agent "LondonCourtFinder/0.1 (+mailto:courtwatch.ldn@gmail.com)",
-  at most 1 request per second per host, back off on 429/5xx. A page fetches several
-  venues/days concurrently, not one at a time, so the per-host throttle (lib/courts/http.ts)
-  has to stay correct under concurrent calls, not just sequential ones — it reserves each
-  host's next free slot the instant it's asked for, before any wait, specifically so this
-  holds.
+  at most 1 request per second per host, back off on 429/5xx, cache responses (see
+  architecture rule 8). A page fetches several venues/days concurrently, not one at a time,
+  so the per-host throttle (lib/courts/http.ts) has to stay correct under concurrent calls,
+  not just sequential ones — it reserves each host's next free slot the instant it's asked
+  for, before any wait, specifically so this holds.
+- Never fire off more than one full page-load's worth of fetches at a time while developing
+  or debugging (e.g. retrying a stuck browser tab, or a manual check alongside it) — they all
+  share the same per-host throttle, so overlapping attempts queue up *behind* each other
+  rather than running independently, and a pile of them in a short window looks like a burst
+  of traffic to the real site. If a check seems stuck, stop and let it finish (or restart
+  cleanly) rather than retrying on top of it.
 - Record each provider's name/terms URL somewhere visible to Nic (currently docs/decisions.md;
   a /sources page can come later if this grows).
 

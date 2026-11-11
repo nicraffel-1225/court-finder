@@ -178,3 +178,47 @@ returns a response that isn't shaped like its usual one for a single day out
 of several requested concurrently (not something in our control) — now
 checked and skipped gracefully (treated as "nothing found" for that day)
 rather than crashing the whole page.
+
+## 11 November 2026 — Stream each venue in, and cache responses for ~2 minutes
+
+Nic tried the live page himself and it felt slow (the ~15-25 second load is
+real — three venues' worth of politely-paced fetching, not a bug — but it's
+a bad first impression and a worse one on every repeat check). Two fixes,
+neither loosens the politeness rules:
+
+- Each venue now streams in independently (`<Suspense>` around a small async
+  component per venue, see `app/page.tsx`). The page shell appears
+  immediately; venues fill in as their own fetch finishes rather than the
+  whole page waiting on all three together. Same total backend work, much
+  better felt speed.
+- Added a short in-memory cache (`lib/courts/cache.ts`, ~2 minutes) around
+  each `getXVenue()`. This was actually already in CLAUDE.md's original
+  rules ("cache responses") — lost when CLAUDE.md got rewritten for the
+  Supabase removal (10 November) and only just noticed. Restored the rule
+  and implemented it together.
+
+Separately: while chasing a stuck browser-pane tab during the same session,
+retried loading the page several times in a short window without waiting
+for earlier attempts to finish. Each attempt independently wants ~40
+requests from LTA/ProAgenda; several overlapping attempts don't run
+independently — they queue behind each other on the same per-host throttle
+— so this looked like a burst of traffic to those two sites and got back
+`ECONNRESET`s and one 15-minute hang. Nothing destructive happened, but it
+wasn't the steady one-a-second behaviour this project is supposed to
+guarantee. Added an explicit rule about this to CLAUDE.md so it isn't
+repeated: don't retry a stuck load on top of itself, let it finish or
+restart cleanly first.
+
+Nic then hit the same thing for real, just by refreshing the page while a
+slow first load was still in progress (completely reasonable thing for a
+visitor to do — "don't refresh" isn't a fair thing to ask of the person
+using the site). A refresh doesn't cancel the abandoned request's fetches;
+they kept running and kept taking their turn on the shared per-host
+throttle right alongside the new request's own fetches, so a refresh mid-
+load made things slower, not faster (one load took 92 seconds; the dev
+server also logged a few "destination stream errored" lines, which is just
+the browser having moved on by the time an old, abandoned load finally
+finished writing its response). Fixed properly rather than just documented
+as a gotcha: `lib/courts/cache.ts` now also de-duplicates a fetch already
+in flight for the same venue, so a second call (from a refresh) joins the
+one already running instead of starting a competing one.

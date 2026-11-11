@@ -6,11 +6,13 @@
 // Fetched live on each page load — there's no database (see decisions.md,
 // 10 November 2026) — so this returns what to show right now rather than
 // writing anything anywhere.
+import { cached } from "./cache.ts";
 import { politeFetchJson } from "./http.ts";
 import { isWithinSyncWindow, londonNaiveToUtcIso, nextNDaysYmd } from "./time.ts";
 import type { CourtSlot, CourtVenue } from "./types.ts";
 
 const SYNC_WINDOW_DAYS = 8;
+const CACHE_TTL_MS = 2 * 60 * 1000;
 
 export interface LtaVenueConfig {
   venueId: string;
@@ -96,6 +98,10 @@ export async function fetchLtaDaySlots(venue: LtaVenueConfig, dateYmd: string): 
 }
 
 export async function getLtaVenue(venueConfig: LtaVenueConfig): Promise<CourtVenue> {
+  return cached(`lta:${venueConfig.venueId}`, CACHE_TTL_MS, () => fetchLtaVenueLive(venueConfig));
+}
+
+async function fetchLtaVenueLive(venueConfig: LtaVenueConfig): Promise<CourtVenue> {
   const now = new Date();
   const days = nextNDaysYmd(SYNC_WINDOW_DAYS, now);
   const perDay = await Promise.all(

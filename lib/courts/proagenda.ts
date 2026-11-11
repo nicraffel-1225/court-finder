@@ -8,11 +8,13 @@
 // Fetched live on each page load — there's no database (see decisions.md,
 // 10 November 2026) — so this returns what to show right now rather than
 // writing anything anywhere.
+import { cached } from "./cache.ts";
 import { politeFetchText } from "./http.ts";
 import { isWithinSyncWindow, londonNaiveToUtcIso, nextNDaysYmd } from "./time.ts";
 import type { CourtSlot, CourtVenue } from "./types.ts";
 
 const SYNC_WINDOW_DAYS = 8;
+const CACHE_TTL_MS = 2 * 60 * 1000;
 const RESOURCE_TIME_SLOT_URL = "https://clientapi.proagenda.com/api/resource/getResourceTimeSlot";
 
 export const DUKES_MEADOWS_VENUE = {
@@ -106,6 +108,10 @@ export async function fetchProagendaDaySlots(court: ProagendaCourt, dateYmd: str
 }
 
 export async function getDukesMeadowsVenue(): Promise<CourtVenue> {
+  return cached(`proagenda:${DUKES_MEADOWS_VENUE.locationGuid}`, CACHE_TTL_MS, fetchDukesMeadowsVenueLive);
+}
+
+async function fetchDukesMeadowsVenueLive(): Promise<CourtVenue> {
   const now = new Date();
   const days = nextNDaysYmd(SYNC_WINDOW_DAYS, now);
 
