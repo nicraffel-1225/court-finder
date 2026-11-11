@@ -1,9 +1,13 @@
 # London Court Finder: instructions for Claude Code
 
 ## What this is
-A personal London website (Nic's own use): enter a postcode, see nearby tennis/padel courts with free slots,
-and click through to the official booking page. We show availability only. We never
-book, hold or resell courts, and never log in on anyone's behalf.
+A personal website (Nic's own use): a short list of named tennis/padel courts near him, with
+free slots fetched live each time the page loads, and a click-through to the official booking
+page. We show availability only. We never book, hold or resell courts, and never log in on
+anyone's behalf.
+
+This isn't a citywide "any postcode in London" search — see docs/decisions.md,
+10 November 2026, for why that was dropped in favour of this smaller, simpler design.
 
 ## Owner
 Nic is not a programmer. Show the plan before writing code. Keep changes small.
@@ -11,39 +15,54 @@ Explain what changed in plain English and say exactly how to check it by hand.
 
 ## Stack (do not change without asking)
 - TypeScript everywhere. Next.js (App Router) hosted on Vercel.
-- Supabase Postgres with PostGIS. Schema changes only via supabase/migrations.
-- Ingestion: TypeScript in /ingest, run on a schedule by GitHub Actions.
-- Map: Leaflet + OpenStreetMap. Postcodes: postcodes.io. Tests: Vitest.
-- Playwright (headless browser), only for providers approved for page reading.
+- No database. Every page load fetches each venue's real booking site live — see
+  "Architecture rules" below.
+- Tests: Vitest.
 - No paid services and no new frameworks without asking.
 
 ## Architecture rules
-1. The website reads only our database and never calls provider sites.
-2. Each provider has one adapter in ingest/adapters that outputs the shared types
-   in lib/types.ts. Nothing outside adapters knows provider-specific formats.
-3. All writes are upserts on (provider_id, external_id). Every job is safe to re-run.
-4. Store times in UTC and display them in Europe/London. Store money as integer pence.
-5. Hide slots from any source not synced successfully in the last 90 minutes;
-   show "availability unknown" instead.
-6. Secrets live in .env.local, GitHub secrets and Vercel env vars, never in code or
-   git. Public pages use the anon (read-only) key only.
-7. Every adapter has tests against saved fixtures in ingest/fixtures. Tests never
-   touch the network.
+1. One small module per provider in lib/courts/ (e.g. lta.ts, proagenda.ts), each outputting
+   the shared `CourtVenue`/`CourtSlot` shape in lib/courts/types.ts. Nothing outside that
+   module knows the provider's own JSON/HTML format.
+2. A venue we can't read live (blocked by robots.txt, no usable feed, etc.) goes in
+   lib/courts/linkOnly.ts instead: shown with a link to check and book directly, no live times.
+3. Store times in UTC internally and display them in Europe/London. Naive local timestamps
+   from a provider (no UTC offset) need explicit conversion — see lib/courts/time.ts's
+   `londonNaiveToUtcIso`, which handles the GMT/BST boundary correctly. Store money as
+   integer pence.
+4. A page that fetches live data is dynamic (`export const dynamic = "force-dynamic"`), not
+   prerendered — provider results change constantly and must never be baked in at build time.
+5. Treat every provider response as an untrusted boundary: check the shape before using it
+   (e.g. confirm an expected array really is one), and let one bad day/court/venue fail
+   gracefully (skip it, don't crash the whole page) rather than throwing.
+6. Secrets live in .env.local and Vercel env vars, never in code or git.
+7. Every provider module has tests against saved fixtures in its own fixtures/ folder. Tests
+   never touch the network.
 
 ## Data sourcing rules
 - Preference order: OpenActive feed > official/partner API > public JSON endpoint
   > HTML scraping > link-only listing.
 - Public JSON and page reading only for providers marked approved in
-  docs/decisions.md (currently: Park Sports, ClubSpark). Public pages only, at
-  most one request every 2 seconds, and no runs between 06:55 and 07:15
-  (slot release).
+  docs/decisions.md (currently: Park Sports, ClubSpark, LTA, ProAgenda).
+  Public pages only, at most one request every 2 seconds, and no runs between
+  06:55 and 07:15 (slot release).
 - Never log in, never use anyone's credentials, never bypass CAPTCHAs, rate limits
-  or robots.txt.
-- Polite fetching: User-Agent "LondonCourtFinder/0.1 (+<your contact email>)",
-  at most 1 request per second per host, back off on 429/5xx, cache responses.
-- Record each provider's licence and attribution in `providers` and show it on /sources.
+  or robots.txt. If a provider's own robots.txt blocks the only page/endpoint that shows
+  availability, that venue is link-only — don't look for a workaround.
+- Polite fetching: User-Agent "LondonCourtFinder/0.1 (+mailto:courtwatch.ldn@gmail.com)",
+  at most 1 request per second per host, back off on 429/5xx. A page fetches several
+  venues/days concurrently, not one at a time, so the per-host throttle (lib/courts/http.ts)
+  has to stay correct under concurrent calls, not just sequential ones — it reserves each
+  host's next free slot the instant it's asked for, before any wait, specifically so this
+  holds.
+- Record each provider's name/terms URL somewhere visible to Nic (currently docs/decisions.md;
+  a /sources page can come later if this grows).
 
 ## Working style
-- Follow docs/BUILD_GUIDE.md one phase at a time. Don't start later phases early.
+- This project is not run in numbered phases any more (see docs/decisions.md,
+  10 November 2026) — docs/BUILD_GUIDE.md is kept only as a historical record of the
+  original, larger design.
+- Adding a new venue: check its robots.txt and real page/API behaviour by hand first,
+  log the finding in docs/decisions.md, then add a small module (or a link-only entry).
 - Before saying a task is done: run tests and lint, then list manual checks for Nic.
 - Log any decision Nic makes in docs/decisions.md with the date.

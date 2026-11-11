@@ -101,3 +101,80 @@ were bookable. Moved the existing 8-day/no-past-slots check
 (`isWithinSyncWindow`) out of `ingest/adapters/openactive.ts` into
 `ingest/core/time.ts` so every adapter shares it, applied it to both new
 adapters, and cleaned up the leftover past-dated rows from the first run.
+
+## 10 November 2026 — Dropped the database: direct live fetch instead of Supabase/Postgres/PostGIS
+
+Also decided today: the repo is going public, as part of Nic's portfolio. The
+git commit author was auto-generated from his real name and Mac hostname
+(never configured) — fixed by setting a throwaway identity
+(`courtwatch-ldn` / `courtwatch.ldn@gmail.com`) for this repo, used the same
+way in the `User-Agent` string sent to every provider (previously a link to
+Nic's own GitHub repo, which also doesn't help a site operator once the
+repo's gone private-to-public either way).
+
+Supabase also flagged `spatial_ref_sys` (a table PostGIS creates automatically,
+not one we made) as publicly readable/writable with no RLS. Confirmed via
+Supabase's own docs this can't actually be fixed at our access level — the
+table is owned by `supabase_admin`, not the project's own `postgres` role, so
+neither a migration nor the dashboard's own "Resolve issue" button can enable
+RLS on it. The only real fix is reinstalling PostGIS in a non-public schema,
+which would drop the `geography` type our `venues.location` column depends
+on — a bigger, riskier change than justified for a table holding only public
+map-projection reference data.
+
+That prompted a bigger question: with the scope now just five named venues
+(not "any postcode in London"), did the project still need a database and
+PostGIS geospatial search at all? No. The whole Supabase/scheduled-ingestion
+design existed to solve "search hundreds of courts across London fast" — for
+a handful of courts Nic already knows by name, it's a lot of machinery that
+mainly produces things like the RLS email above.
+
+**Decision: drop Supabase entirely.** The website now fetches each venue's
+real booking site live, on every page load, and shows what's free right now
+— no database, no scheduled ingestion, no migrations, no RLS. Concretely:
+
+- Removed `supabase/` (all migrations), `ingest/core/db.ts`, `upsert.ts`,
+  `run.ts`, the Better/GLL OpenActive adapter and RPDE reader (built for a
+  citywide crawl that no longer fits; Gunnersbury, the one Better venue in
+  scope, is link-only anyway), `tests/database.test.ts`, and `@supabase/supabase-js`.
+- Moved the LTA and ProAgenda logic from `ingest/adapters/` into `lib/courts/`,
+  stripped of anything DB-shaped: each now exposes a `getXVenue()` function
+  that fetches live and returns a venue to display, instead of upserting rows.
+- `lib/courts/types.ts` replaces `lib/types.ts` and `ingest/core/types.ts`
+  with simpler display-only shapes (no ids, no `updated_at` — nothing here is
+  a database row any more).
+- Built `app/page.tsx`: a single page listing the 3 live venues (Ravenscourt
+  Park, Southfield Rec, Dukes Meadows) with their real upcoming slots and
+  "Book at ___" links, plus Gunnersbury and Bishops Park shown link-only.
+  Marked `export const dynamic = "force-dynamic"` — this page must never be
+  prerendered, since a snapshot baked in at build time would go stale
+  immediately.
+- `docs/BUILD_GUIDE.md` is kept only as a historical record (marked as
+  superseded at the top); CLAUDE.md rewritten to describe the current,
+  simpler architecture instead of the ten-phase plan.
+
+**Two real bugs turned up while building and checking this live, not just in
+a sense-check of the code:**
+
+1. The LTA and ProAgenda JSON grids include hours that have already passed
+   today (unlike Better's OpenActive feed, which only ever lists future
+   slots) — the first page load briefly showed a handful of this morning's
+   already-elapsed hours as "available". Fixed by applying the existing
+   8-day/no-past-slots check (already written for the Better adapter) to
+   both of these too.
+2. Fetching a venue's 8 days concurrently (`Promise.all`, for page-load
+   speed) broke the "at most 1 request per second per host" politeness rule:
+   the throttle only recorded a host's last-request time *after* that
+   request's own wait finished, so several concurrent calls could all read
+   the same stale timestamp and fire together instead of a second apart —
+   confirmed by instrumenting it directly (concurrent calls landed
+   1-2ms apart, not ~1000ms). Fixed `lib/courts/http.ts` to reserve each
+   host's next free slot the instant it's asked for, before any wait, which
+   stays correct under concurrent calls; added a regression test for this
+   specific case so it can't silently reappear.
+
+Also found and fixed during the same pass: the LTA endpoint occasionally
+returns a response that isn't shaped like its usual one for a single day out
+of several requested concurrently (not something in our control) — now
+checked and skipped gracefully (treated as "nothing found" for that day)
+rather than crashing the whole page.

@@ -28,6 +28,32 @@ describe("politeFetchText", () => {
     expect(elapsed).toBeGreaterThanOrEqual(55);
   });
 
+  it("still staggers concurrent requests to the same host a full interval apart", async () => {
+    // Regression test: the website fetches several days/courts for the
+    // same host concurrently (Promise.all), not one at a time like the
+    // original sequential ingest script. An earlier version of this
+    // throttle only recorded the "last request" timestamp after each
+    // call's own wait finished, so several concurrent calls could all read
+    // the same stale timestamp and fire together instead of a second apart.
+    const callTimes: number[] = [];
+    const fetchMock = vi.fn().mockImplementation(async () => {
+      callTimes.push(Date.now());
+      return jsonResponse({ ok: true });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const url = "https://host-concurrent.example/one";
+    const start = Date.now();
+    await Promise.all(Array.from({ length: 4 }, () => politeFetchText(url, { minIntervalMs: 40 })));
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const deltas = callTimes.slice(1).map((t, i) => t - callTimes[i]);
+    for (const delta of deltas) {
+      expect(delta).toBeGreaterThanOrEqual(35); // small tolerance for timer jitter
+    }
+    expect(callTimes[3] - start).toBeGreaterThanOrEqual(115); // ~3 full intervals, not ~0
+  });
+
   it("does not wait for a different host", async () => {
     const fetchMock = vi.fn().mockImplementation(async () => jsonResponse({ ok: true }));
     vi.stubGlobal("fetch", fetchMock);

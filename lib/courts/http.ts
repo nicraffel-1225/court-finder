@@ -1,8 +1,8 @@
-// Phase 3: polite fetch helper — User-Agent, rate limits, backoff on 429/5xx.
+// Polite fetch helper — User-Agent, rate limits, backoff on 429/5xx.
 //
 // CLAUDE.md's polite-fetching rule is "at most 1 request per second per
 // host, back off on 429/5xx". This enforces that per hostname (not
-// globally), so syncing several providers in the same run never queues
+// globally), so fetching several venues on one page load never queues
 // behind a single slow one, and retries a failed request a few times with
 // an increasing delay before giving up.
 
@@ -11,13 +11,21 @@ export const USER_AGENT = "LondonCourtFinder/0.1 (+mailto:courtwatch.ldn@gmail.c
 const MIN_INTERVAL_MS = 1000;
 const MAX_RETRIES = 3;
 
-const lastRequestAtByHost = new Map<string, number>();
+// Each host's next free slot, reserved the instant a call asks for one —
+// not after that call's own wait finishes. The website fetches several
+// days/courts for the same host concurrently (lib/courts/lta.ts and
+// proagenda.ts both use Promise.all), so several calls can ask for a slot
+// in the same tick; reserving synchronously, before any `await`, is what
+// actually staggers them a second apart instead of letting them all wait
+// out the same stale timestamp and then fire together.
+const nextFreeAtByHost = new Map<string, number>();
 
 async function waitForTurn(hostname: string, minIntervalMs: number): Promise<void> {
-  const lastAt = lastRequestAtByHost.get(hostname) ?? 0;
-  const waitMs = minIntervalMs - (Date.now() - lastAt);
+  const now = Date.now();
+  const earliestStart = Math.max(now, nextFreeAtByHost.get(hostname) ?? 0);
+  nextFreeAtByHost.set(hostname, earliestStart + minIntervalMs);
+  const waitMs = earliestStart - now;
   if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
-  lastRequestAtByHost.set(hostname, Date.now());
 }
 
 function retryDelayMs(attempt: number, retryAfterHeader: string | null, baseDelayMs: number): number {

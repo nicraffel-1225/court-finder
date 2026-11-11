@@ -2,6 +2,14 @@
 
 Last updated: 1 November 2026 · Nic
 
+> **Superseded, 10 November 2026.** The project moved away from this plan — see
+> docs/decisions.md's "10 November 2026" entries. Instead of a citywide, postcode-searchable
+> database (Phases 2, 4, 5 below), Nic narrowed the scope to a short, named list of courts near
+> him, and the site now fetches each one's live availability directly on every page load — no
+> database, no scheduled ingestion, no PostGIS. CLAUDE.md describes the current, much simpler
+> architecture. This file is kept only as a historical record of the original ten-phase design;
+> don't follow it for new work.
+
 ## How to use this guide
 
 The site gets its availability data from free open data feeds wherever they exist, and scrapes only as a last resort. It is built in ten phases, each one working and tested before the next starts. You do not write code. Claude Code writes it, and you check each phase against a "done when" list you can verify by looking at the site, the database or a log.

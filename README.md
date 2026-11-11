@@ -1,44 +1,28 @@
 # London Court Finder
 
-A personal website for Nic's own use: type a London postcode, see nearby tennis
-(and later padel) courts with free slots, and click through to the venue's own
-booking page. The site only shows availability — it never books, holds or
-resells a court, and never logs in on anyone's behalf.
+A personal website for Nic's own use: a short list of named tennis/padel courts near him,
+with free slots fetched live each time the page loads, and a click-through to the venue's
+own booking page. The site only shows availability — it never books, holds or resells a
+court, and never logs in on anyone's behalf.
+
+There's no database and no postcode search — see docs/decisions.md, 10 November 2026, for
+why the project moved away from that larger design to this smaller one.
 
 ## Where things are
 
-- **[docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md)** — the full ten-phase plan. This is
-  the source of truth for what gets built, in what order, and how to check each
-  phase. Claude Code works through it one phase at a time.
 - **[CLAUDE.md](CLAUDE.md)** — standing rules for Claude Code (stack, architecture,
   how to handle data sources, working style). Read automatically every session.
 - **[docs/decisions.md](docs/decisions.md)** — a dated log of choices Nic has made
-  (e.g. which providers are approved for page reading).
-- **[docs/data-sources.md](docs/data-sources.md)** — register of every court
-  provider and which free data feed (if any) it has. Filled in during Phase 1.
-
-## Status
-
-**Phase 0 and Phase 1 are done.** Phase 2 (the database) is in progress: the
-schema exists as migrations in `supabase/migrations/`, but needs a real
-Supabase project to apply them to — see below.
-
-## Database setup (Phase 2)
-
-1. Create a free project at [supabase.com](https://supabase.com) (region:
-   **London**, so the database is close to where the site runs).
-2. In the new project, open **SQL Editor** and run each file in
-   `supabase/migrations/` in order (they're numbered) — paste one in, hit
-   Run, then the next.
-3. In **Settings -> API**, copy the Project URL, the `anon` `public` key and
-   the `service_role` key.
-4. Copy `.env.local.example` to `.env.local` and paste those three values in.
-   Never paste the `service_role` key anywhere else (not in chat, not in
-   git) — it bypasses all the read-only restrictions.
-5. Run `npm test` — the Phase 2 database tests (in `tests/database.test.ts`)
-   will now run for real instead of skipping, checking that search finds a
-   nearby test venue, doesn't find a far-away one, and that the public key
-   can't write to the database.
+  (which providers are approved for live reads, and why).
+- **[docs/data-sources.md](docs/data-sources.md)** — historical findings from the
+  original citywide-search design; kept as reference, not current scope.
+- **[docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md)** — the original ten-phase plan;
+  superseded, kept only as a historical record.
+- **lib/courts/** — one small module per provider (`lta.ts`, `proagenda.ts`), each
+  fetching that provider's real booking site live and returning what to show.
+  `linkOnly.ts` lists venues we can't read live (blocked by their own robots.txt).
+- **app/page.tsx** — the one page: lists every venue with its live slots (or, for
+  link-only ones, a note and a link to check directly).
 
 ## Running it locally
 
@@ -47,15 +31,25 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:3000.
+Then open http://localhost:3000. The page can take 15-25 seconds to load — it's
+fetching real, live availability from each venue's own site as you load it, at a
+polite one request per second per site, not reading from a cache.
 
 ```bash
 npm test     # runs the test suite (Vitest)
 npm run lint # checks code style (ESLint)
 ```
 
+## Adding a venue
+
+1. Check the venue's `robots.txt` and how its real booking page/API behaves by hand
+   first (see CLAUDE.md's data sourcing rules).
+2. Log what you found in `docs/decisions.md`, dated.
+3. If it's readable: add a small module in `lib/courts/` (fixtures + tests, no
+   network in tests). If it's blocked: add it to `lib/courts/linkOnly.ts` instead.
+
 ## Secrets
 
-Real API keys and database credentials live in `.env.local` on your own machine,
-and in GitHub/Vercel's secret settings once those are set up — never in this
-repo. `.env.local` is listed in `.gitignore` so it's never pushed by accident.
+None are needed right now — every source this project reads is a genuinely public
+endpoint, no API key required. If that ever changes, real values would live in
+`.env.local` on your own machine and in Vercel's secret settings, never in this repo.

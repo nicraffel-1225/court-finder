@@ -1,6 +1,11 @@
 # Data sources register
 
-Produced by `ingest/discover.ts` (Phase 1). It walks the OpenActive data catalogue collection and checks the first page of each candidate feed for real tennis/padel facilities (not table tennis) with a London address. It does not create a database and makes no write of any kind.
+Historical record from the original citywide-search design (superseded 10 November 2026, see
+docs/decisions.md — the project now covers a short, named list of courts instead; `ingest/discover.ts`
+and the script that produced this no longer exist). Kept because the findings below are still
+accurate reference material if a new provider ever needs checking.
+
+Produced by `ingest/discover.ts` (Phase 1). It walked the OpenActive data catalogue collection and checked the first page of each candidate feed for real tennis/padel facilities (not table tennis) with a London address. It created no database and made no write of any kind.
 
 Last run: 2026-11-05
 
