@@ -1,13 +1,16 @@
+/* Colour tokens — docs/design.md. Yellow means "you can book this": never
+   use it for decoration. One light theme only, no dark-mode block. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --court: #1e4d3a;
+  --ball: #d9f03a;
+  --ball-hover: #c3da1e;
+  --line: #fafbf7;
+  --card: #ffffff;
+  --taken: #e3e7e0;
+  --rule: #d5dbd3;
+  --ink: #13201a;
+  --muted: #4d5b53;
+  --on-green-muted: #cfe0d6;
 }
 
 html {
@@ -22,11 +25,11 @@ body {
 
 body {
   min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  background: var(--line);
+  font-family: var(--font-archivo), Arial, sans-serif;
+  font-size: 16px;
+  font-variation-settings: "wdth" 100;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -42,101 +45,523 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
   }
 }
 
+/* Display type: venue names, headlines, the wordmark */
+.logo-word,
+.next-free-headline,
+.sheet-title,
+.venue-row-name,
+.venue-phone-name,
+.court-row-title {
+  font-weight: 800;
+  font-stretch: 72%;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+}
+
 .page {
-  max-width: 720px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem 4rem;
+  padding: 32px 32px 64px;
 }
 
-.intro {
-  opacity: 0.75;
-  margin: 0.5rem 0 2rem;
+/* ---- Header ---- */
+.site-header {
+  background: var(--court);
+  color: var(--line);
 }
 
-.venue-card {
-  border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
-  border-radius: 10px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1.5rem;
+.site-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-.venue-card--link-only {
-  opacity: 0.85;
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.venue-card--loading {
-  opacity: 0.5;
+.logo-word {
+  font-size: 1.25rem;
 }
 
-.venue-address {
-  opacity: 0.65;
+.site-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.checked-at {
+  color: var(--on-green-muted);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.check-again {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 44px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--line) 35%, transparent);
+  color: var(--line);
+  font-weight: 650;
+}
+
+.check-again:hover {
+  background: color-mix(in srgb, var(--line) 12%, transparent);
+}
+
+/* ---- Next free court ---- */
+.next-free {
+  margin: 32px 0;
+}
+
+.next-free-kicker {
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.next-free-headline {
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
   margin-bottom: 1rem;
 }
 
-.venue-day {
-  margin-top: 0.5rem;
-  border-top: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+.next-free-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 22px;
+  background: var(--ball);
+  color: var(--ink);
+  font-weight: 700;
 }
 
-.venue-day summary {
-  cursor: pointer;
-  list-style: none;
-  font-size: 0.95rem;
+.next-free-button:hover {
+  background: var(--ball-hover);
+}
+
+/* ---- Day strip ---- */
+.day-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+
+.day-button {
+  flex: 0 0 auto;
+  min-width: 84px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--rule);
+  background: var(--card);
+  color: var(--ink);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.day-button[aria-pressed="true"] {
+  background: var(--court);
+  border-color: var(--court);
+  color: var(--line);
+}
+
+.day-button-label {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.day-button-number {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-button-count {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* ---- Time chips ---- */
+.time-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.time-chip {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  border: 1px solid var(--rule);
+  background: var(--card);
+  color: var(--ink);
   font-weight: 600;
-  padding: 0.6rem 0;
 }
 
-.venue-day summary::-webkit-details-marker {
-  display: none;
+.time-chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--line);
 }
 
-.venue-day summary::before {
-  content: "▸";
+/* ---- Court sheet ---- */
+.sheet-header-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.sheet-title {
+  font-size: 1.1rem;
+}
+
+.sheet-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
   display: inline-block;
-  width: 1em;
-  opacity: 0.6;
 }
 
-.venue-day[open] summary::before {
-  content: "▾";
+.legend-swatch--free {
+  background: var(--ball);
 }
 
-.slot-count {
-  font-weight: 400;
-  opacity: 0.6;
+.legend-swatch--taken {
+  background: var(--taken);
 }
 
-.slot-list {
-  list-style: none;
+.court-sheet {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  padding: 20px;
+  overflow-x: auto;
+  margin-bottom: 40px;
+}
+
+.hour-header-row {
   display: grid;
-  gap: 0.25rem;
-  padding-bottom: 0.75rem;
+  gap: 6px;
+  padding-bottom: 8px;
 }
 
-.venue-empty {
-  opacity: 0.65;
-  font-style: italic;
-  margin: 0.5rem 0;
+.hour-header-cell {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
-.book-link {
-  display: inline-block;
-  margin-top: 1rem;
-  font-weight: 600;
+.venue-block {
+  border-top: 1px solid var(--rule);
+  padding: 16px 0;
 }
 
-.book-link:hover {
+.venue-block:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.venue-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.venue-row-name {
+  font-size: 1.05rem;
+}
+
+.venue-row-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.venue-row-link {
+  font-weight: 650;
+  color: var(--court);
+}
+
+.venue-row-link:hover {
   text-decoration: underline;
 }
 
+.court-grid-row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.court-row-name {
+  min-width: 0;
+}
+
+.court-row-title {
+  font-size: 0.95rem;
+}
+
+.court-row-detail {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.cell {
+  height: 44px;
+  border-radius: 8px;
+}
+
+.cell--free {
+  background: var(--ball);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.cell--free:hover {
+  background: var(--ball-hover);
+}
+
+.cell--taken {
+  background: var(--taken);
+}
+
+.cell--past {
+  border: 1px dashed var(--rule);
+  background: transparent;
+}
+
+.venue-empty {
+  color: var(--muted);
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.venue-block--loading .venue-row-meta,
+.venue-block--error p {
+  color: var(--muted);
+}
+
+.venue-block--error a {
+  color: var(--court);
+  font-weight: 650;
+}
+
+.skeleton-cells {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.skeleton-cell {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--taken);
+  opacity: 0.6;
+}
+
+/* Phone venue cards: hidden on desktop, shown under 760px */
+.venue-phone-card {
+  display: none;
+}
+
+/* ---- Link-only section ---- */
+.link-only {
+  margin-bottom: 40px;
+}
+
 .link-only-heading {
-  margin: 2.5rem 0 1rem;
   font-size: 1.1rem;
-  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.link-only-intro {
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.link-only-card {
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.link-only-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.link-only-link {
+  font-weight: 650;
+  color: var(--court);
+}
+
+.link-only-link:hover {
+  text-decoration: underline;
+}
+
+/* ---- Footer ---- */
+.site-footer {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+
+/* ---- Phone layout (≤759px): grid becomes per-venue cards ---- */
+@media (max-width: 759px) {
+  .page {
+    padding: 16px 16px 48px;
+  }
+
+  .site-header-inner {
+    padding: 12px 16px;
+  }
+
+  .check-again-label {
+    display: none;
+  }
+
+  .check-again {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .hour-header-row {
+    display: none;
+  }
+
+  .court-sheet {
+    background: none;
+    border: none;
+    padding: 0;
+    overflow-x: visible;
+  }
+
+  .venue-block {
+    border-top: none;
+    padding: 0;
+    margin-bottom: 16px;
+  }
+
+  .venue-block:first-of-type {
+    padding-top: 0;
+  }
+
+  .venue-desktop {
+    display: none;
+  }
+
+  .venue-phone-card {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .venue-phone-meta {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin: 2px 0 12px;
+  }
+
+  .phone-court {
+    margin-bottom: 14px;
+  }
+
+  .phone-court-name {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+
+  .phone-time-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .phone-time-button {
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 10px;
+    background: var(--ball);
+    color: var(--ink);
+    font-weight: 650;
+    display: inline-flex;
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .phone-time-button:hover {
+    background: var(--ball-hover);
+  }
+
+  .venue-phone-link {
+    display: inline-block;
+    margin-top: 12px;
+    font-weight: 650;
+    color: var(--court);
+  }
+
+  .link-only-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

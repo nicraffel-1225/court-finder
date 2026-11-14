@@ -1,111 +1,248 @@
+import Link from "next/link";
 import { Suspense } from "react";
+import { DayStrip } from "@/components/DayStrip";
+import { parseFacilityLabel } from "@/components/facility";
+import { FilterProvider } from "@/components/FilterProvider";
+import { joinWithAnd, londonTimeLabel, postcodeOutcode, relativeDayLabelFromIso } from "@/components/london";
+import { Logo } from "@/components/Logo";
+import { SheetHeader } from "@/components/SheetHeader";
+import { TimeChips } from "@/components/TimeChips";
+import { VenueRows } from "@/components/VenueRows";
 import { LINK_ONLY_VENUES } from "@/lib/courts/linkOnly";
 import { getLtaVenue, LTA_VENUES, type LtaVenueConfig } from "@/lib/courts/lta";
-import { getDukesMeadowsVenue } from "@/lib/courts/proagenda";
-import type { CourtSlot, CourtVenue } from "@/lib/courts/types";
+import { DUKES_MEADOWS_VENUE, getDukesMeadowsVenue } from "@/lib/courts/proagenda";
+import { nextNDaysYmd } from "@/lib/courts/time";
+import type { CourtSlot } from "@/lib/courts/types";
 
 // Every visit should see real current availability, not a snapshot baked
 // in at build/deploy time.
 export const dynamic = "force-dynamic";
 
-function formatLondon(iso: string, options: Intl.DateTimeFormatOptions): string {
-  return new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", ...options }).format(new Date(iso));
-}
+const LIVE_VENUE_META = [...LTA_VENUES, DUKES_MEADOWS_VENUE];
 
-function groupByDay(slots: CourtSlot[]): [string, CourtSlot[]][] {
-  const byDay = new Map<string, CourtSlot[]>();
-  for (const slot of slots) {
-    const dayLabel = formatLondon(slot.startAt, { weekday: "long", day: "numeric", month: "long" });
-    byDay.set(dayLabel, [...(byDay.get(dayLabel) ?? []), slot]);
+function siteNameFromUrl(url: string): string {
+  if (url.includes("better.org.uk")) return "Better";
+  if (url.includes("playtomic")) return "Playtomic";
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "this site";
   }
-  return [...byDay.entries()];
 }
 
-function VenueCard({ venue }: { venue: CourtVenue }) {
-  const days = groupByDay(venue.slots);
+function RefreshIcon() {
   return (
-    <article className="venue-card">
-      <h2>{venue.name}</h2>
-      <p className="venue-address">
-        {venue.address}
-        {venue.postcode ? `, ${venue.postcode}` : ""}
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 4v6h6M20 20v-6h-6M5.5 15a7 7 0 0 0 12.3 2.5M18.5 9A7 7 0 0 0 6.2 6.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+interface EarliestSlot {
+  slot: CourtSlot;
+  venueName: string;
+  bookingUrl: string;
+  providerLabel: string;
+}
+
+async function findEarliestSlot(): Promise<EarliestSlot | null> {
+  const candidates: EarliestSlot[] = [];
+
+  await Promise.all([
+    ...LTA_VENUES.map(async (cfg) => {
+      try {
+        const venue = await getLtaVenue(cfg);
+        if (venue.slots[0]) {
+          candidates.push({ slot: venue.slots[0], venueName: venue.name, bookingUrl: venue.bookingUrl, providerLabel: "LTA Play" });
+        }
+      } catch (err) {
+        console.warn(`Next free court: couldn't load ${cfg.name}:`, err);
+      }
+    }),
+    (async () => {
+      try {
+        const venue = await getDukesMeadowsVenue();
+        if (venue.slots[0]) {
+          candidates.push({ slot: venue.slots[0], venueName: venue.name, bookingUrl: venue.bookingUrl, providerLabel: "ProAgenda" });
+        }
+      } catch (err) {
+        console.warn("Next free court: couldn't load Dukes Meadows:", err);
+      }
+    })(),
+  ]);
+
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => a.slot.startAt.localeCompare(b.slot.startAt));
+  return candidates[0];
+}
+
+async function NextFreeCourt() {
+  const earliest = await findEarliestSlot();
+  const areas = joinWithAnd(
+    Array.from(new Set(LIVE_VENUE_META.map((v) => postcodeOutcode(v.postcode)).filter((a): a is string => !!a)))
+  );
+
+  if (!earliest) {
+    return (
+      <section className="next-free">
+        <p className="next-free-kicker">{areas ? `Near ${areas}` : "Nearby courts"}</p>
+        <p className="next-free-headline">Nothing free in the next 8 days.</p>
+      </section>
+    );
+  }
+
+  const days = nextNDaysYmd(2);
+  const dayLabel = relativeDayLabelFromIso(earliest.slot.startAt, days[0], days[1]);
+  const timeLabel = londonTimeLabel(earliest.slot.startAt);
+  const { name: courtName } = parseFacilityLabel(earliest.slot.facilityName);
+
+  return (
+    <section className="next-free">
+      <p className="next-free-kicker">{areas ? `Next free court near ${areas}` : "Next free court"}</p>
+      <p className="next-free-headline">
+        {dayLabel} at {timeLabel}, {earliest.venueName} {courtName}
       </p>
-      {days.length === 0 ? (
-        <p className="venue-empty">No free slots found in the next 8 days.</p>
-      ) : (
-        days.map(([day, slots]) => (
-          <details key={day} className="venue-day">
-            <summary>
-              {day} <span className="slot-count">({slots.length} free)</span>
-            </summary>
-            <ul className="slot-list">
-              {slots.map((slot) => (
-                <li key={`${slot.facilityName}-${slot.startAt}`}>
-                  {formatLondon(slot.startAt, { hour: "2-digit", minute: "2-digit" })}–
-                  {formatLondon(slot.endAt, { hour: "2-digit", minute: "2-digit" })} — {slot.facilityName}
-                  {slot.pricePence != null ? ` — £${(slot.pricePence / 100).toFixed(2)}` : ""}
-                  {slot.remaining != null && slot.remaining > 1 ? ` (${slot.remaining} available)` : ""}
-                </li>
-              ))}
-            </ul>
-          </details>
-        ))
-      )}
-      <a className="book-link" href={venue.bookingUrl} target="_blank" rel="noopener noreferrer">
-        Book at {venue.name} →
+      <a className="next-free-button" href={earliest.bookingUrl} target="_blank" rel="noopener noreferrer">
+        Book on {earliest.providerLabel} →
       </a>
-    </article>
+    </section>
+  );
+}
+
+function NextFreeSkeleton() {
+  return (
+    <section className="next-free next-free--loading">
+      <p className="next-free-kicker">Checking live times…</p>
+      <p className="next-free-headline">Finding the next free court…</p>
+    </section>
   );
 }
 
 function VenueSkeleton({ name }: { name: string }) {
   return (
-    <article className="venue-card venue-card--loading">
-      <h2>{name}</h2>
-      <p className="venue-empty">Checking live availability…</p>
-    </article>
+    <div className="venue-block venue-block--loading">
+      <div className="venue-row">
+        <div className="venue-row-name">{name}</div>
+        <div className="venue-row-meta">Checking live times…</div>
+      </div>
+      <div className="skeleton-cells" aria-hidden="true">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <span key={i} className="skeleton-cell" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VenueLoadError({ name, providerLabel, bookingUrl }: { name: string; providerLabel: string; bookingUrl: string }) {
+  return (
+    <div className="venue-block venue-block--error">
+      <p>
+        Couldn&apos;t load live times for {name} just now.{" "}
+        <a href={bookingUrl} target="_blank" rel="noopener noreferrer">
+          Open {providerLabel}
+        </a>{" "}
+        to check.
+      </p>
+    </div>
   );
 }
 
 async function LtaVenueSection({ venueConfig }: { venueConfig: LtaVenueConfig }) {
-  const venue = await getLtaVenue(venueConfig);
-  return <VenueCard venue={venue} />;
+  let venue;
+  try {
+    venue = await getLtaVenue(venueConfig);
+  } catch (err) {
+    console.warn(`Couldn't load ${venueConfig.name}:`, err);
+    return <VenueLoadError name={venueConfig.name} providerLabel="LTA Play" bookingUrl={venueConfig.bookingUrl} />;
+  }
+  return <VenueRows venue={venue} venueKey={venue.name} providerLabel="LTA Play" />;
 }
 
 async function DukesMeadowsSection() {
-  const venue = await getDukesMeadowsVenue();
-  return <VenueCard venue={venue} />;
+  let venue;
+  try {
+    venue = await getDukesMeadowsVenue();
+  } catch (err) {
+    console.warn("Couldn't load Dukes Meadows:", err);
+    return (
+      <VenueLoadError name={DUKES_MEADOWS_VENUE.name} providerLabel="ProAgenda" bookingUrl={DUKES_MEADOWS_VENUE.bookingUrl} />
+    );
+  }
+  return <VenueRows venue={venue} venueKey={venue.name} providerLabel="ProAgenda" />;
 }
 
 export default function Home() {
+  const days = nextNDaysYmd(8);
+  const checkedAt = londonTimeLabel(new Date().toISOString());
+
   return (
-    <main className="page">
-      <h1>London Court Finder</h1>
-      <p className="intro">Live availability for a handful of courts, checked just now. We never book for you.</p>
+    <>
+      <header className="site-header">
+        <div className="site-header-inner">
+          <Logo />
+          <div className="site-header-meta">
+            <span className="checked-at">Times checked at {checkedAt}</span>
+            <Link className="check-again" href="/" aria-label="Check times again">
+              <RefreshIcon />
+              <span className="check-again-label">Check again</span>
+            </Link>
+          </div>
+        </div>
+      </header>
 
-      {LTA_VENUES.map((venueConfig) => (
-        <Suspense key={venueConfig.venueId} fallback={<VenueSkeleton name={venueConfig.name} />}>
-          <LtaVenueSection venueConfig={venueConfig} />
+      <main className="page">
+        <Suspense fallback={<NextFreeSkeleton />}>
+          <NextFreeCourt />
         </Suspense>
-      ))}
-      <Suspense fallback={<VenueSkeleton name="Dukes Meadows" />}>
-        <DukesMeadowsSection />
-      </Suspense>
 
-      <h2 className="link-only-heading">Other nearby courts (no live times yet)</h2>
-      {LINK_ONLY_VENUES.map((venue) => (
-        <article key={venue.name} className="venue-card venue-card--link-only">
-          <h2>{venue.name}</h2>
-          <p className="venue-address">
-            {venue.address}
-            {venue.postcode ? `, ${venue.postcode}` : ""}
+        <FilterProvider days={days}>
+          <DayStrip />
+          <TimeChips />
+          <div className="court-sheet">
+            <SheetHeader />
+            {LTA_VENUES.map((venueConfig) => (
+              <Suspense key={venueConfig.venueId} fallback={<VenueSkeleton name={venueConfig.name} />}>
+                <LtaVenueSection venueConfig={venueConfig} />
+              </Suspense>
+            ))}
+            <Suspense fallback={<VenueSkeleton name="Dukes Meadows" />}>
+              <DukesMeadowsSection />
+            </Suspense>
+          </div>
+        </FilterProvider>
+
+        <section className="link-only">
+          <h2 className="link-only-heading">Check these on their own sites</h2>
+          <p className="link-only-intro">
+            These venues don&apos;t let other sites read their times, so they open in a new tab.
           </p>
-          <p className="venue-empty">{venue.note}</p>
-          <a className="book-link" href={venue.bookingUrl} target="_blank" rel="noopener noreferrer">
-            Check availability at {venue.name} →
-          </a>
-        </article>
-      ))}
-    </main>
+          {LINK_ONLY_VENUES.map((venue) => (
+            <article key={venue.name} className="link-only-card">
+              <div>
+                <h3>{venue.name}</h3>
+                <p className="link-only-meta">
+                  {venue.postcode ? `${venue.postcode}, ` : ""}
+                  {venue.sport}
+                </p>
+              </div>
+              <a className="link-only-link" href={venue.bookingUrl} target="_blank" rel="noopener noreferrer">
+                Open {siteNameFromUrl(venue.bookingUrl)} →
+              </a>
+            </article>
+          ))}
+        </section>
+
+        <footer className="site-footer">
+          <p>Court Finder shows free courts. Booking and payment happen on each venue&apos;s own site.</p>
+        </footer>
+      </main>
+    </>
   );
 }
