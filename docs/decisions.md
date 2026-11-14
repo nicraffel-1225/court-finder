@@ -222,3 +222,20 @@ finished writing its response). Fixed properly rather than just documented
 as a gotcha: `lib/courts/cache.ts` now also de-duplicates a fetch already
 in flight for the same venue, so a second call (from a refresh) joins the
 one already running instead of starting a competing one.
+
+## 14 November 2026 — Real homepage design, and real email for commits (Vercel deploy)
+
+Restyled the homepage to match a proper design (`docs/design.md`, mockups on Nic's
+design canvas): green/yellow "half court" identity, Archivo, a next-free-court
+headline, and a day/time filter that re-slices already-loaded data client-side
+with no refetching. New UI code lives under `components/`; `lib/courts/` is
+untouched.
+
+Separately: Nic's first Vercel import of the repo was blocked — Vercel refuses to
+deploy a commit whose author email isn't a verified email on the connected GitHub
+account (`nicraffel-1225`), and the throwaway `courtwatch.ldn@gmail.com` identity
+set on 10 November for public commits isn't one. Rather than verify that address
+on GitHub, Nic chose to use his real email for this repo's commits going forward
+— `git config user.email` set locally for this repo only (not `--global`, so it
+doesn't touch any other project on his machine). The commit name stays
+`courtwatch-ldn`; only the email changed, and only here.
