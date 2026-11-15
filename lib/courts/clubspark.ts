@@ -9,7 +9,7 @@
 // 10 November 2026) — so this returns what to show right now rather than
 // writing anything anywhere.
 import { cached } from "./cache.ts";
-import { politeFetchJson } from "./http.ts";
+import { politeFetchJson, politeFetchText } from "./http.ts";
 import { isWithinSyncWindow, londonNaiveToUtcIso, nextNDaysYmd } from "./time.ts";
 import type { CourtSlot, CourtVenue } from "./types.ts";
 
@@ -120,7 +120,23 @@ function venueWithSlots(slots: CourtSlot[]): CourtVenue {
   };
 }
 
+// TEMPORARY (15 November 2026): checking whether Vercel's 403 from
+// chiswick.parksports.co.uk's JSON endpoint also applies to the plain HTML
+// booking page, or just that one API path — see docs/decisions.md. Remove
+// this once we have an answer, whichever way it goes.
+async function diagnosePageReadability(): Promise<void> {
+  try {
+    const html = await politeFetchText("https://chiswick.parksports.co.uk/Booking/BookByDate", {
+      accept: "text/html",
+    });
+    console.warn(`Chiswick diagnostic: HTML page fetch succeeded, ${html.length} chars`);
+  } catch (err) {
+    console.warn("Chiswick diagnostic: HTML page fetch failed:", err);
+  }
+}
+
 async function fetchChiswickVenueLive(): Promise<CourtVenue> {
+  await diagnosePageReadability();
   const now = new Date();
   const days = nextNDaysYmd(SYNC_WINDOW_DAYS, now);
   // One request covers every court for the whole window — this endpoint doesn't
