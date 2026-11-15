@@ -239,3 +239,41 @@ on GitHub, Nic chose to use his real email for this repo's commits going forward
 — `git config user.email` set locally for this repo only (not `--global`, so it
 doesn't touch any other project on his machine). The commit name stays
 `courtwatch-ldn`; only the email changed, and only here.
+
+## 14 November 2026 — Chiswick added: public JSON reads, tennis only
+
+Added Chiswick (`chiswick.parksports.co.uk`), the ClubSpark venue flagged as
+not-yet-built on 10 November. Checked by hand before building anything:
+
+- `robots.txt` is wide open (no `Disallow` lines at all).
+- Its booking JSON endpoint (`/v0/VenueBooking/.../GetVenueSessions`) returns
+  clean public JSON directly — no login, no Cloudflare challenge. This is a
+  different finding from the 5 November check against `clubspark.lta.org.uk`,
+  which was Cloudflare-protected and only readable via a real rendered
+  browser (Playwright). Chiswick's own Park Sports subdomain apparently
+  doesn't have that bot protection turned on for this particular endpoint —
+  though its `/Contact` page does return a Cloudflare challenge, so it isn't
+  blanket-open across the whole site. Built as a plain public-JSON module
+  (`lib/courts/clubspark.ts`), same shape as `lta.ts`/`proagenda.ts` — no
+  need for Playwright, so no new dependency.
+- One request covers every court for the whole 8-day window at once — no
+  need to fetch day-by-day like the LTA and ProAgenda modules do.
+- Chiswick has both tennis (5 courts) and pickleball (4 courts) on the same
+  system. Nic chose tennis only for now, matching the site's current
+  "tennis/padel courts" scope — pickleball courts are fetched in the same
+  response but filtered out, not shown.
+- Working out which sessions mean "free to book" took checking the real
+  page's own rendered HTML (`title` attributes on each session cell), not
+  just the JSON field names, because the categories are easy to misread:
+  `Category: 0` (a generic, privacy-scrubbed GUID as its `Name`) is the
+  *free* slot, confirmed by the page's own `Booked Category: Booking` title
+  on occupied hours — `Category: 1000` ("Booking") is the one that's
+  already taken. `Category: 8000` is closed/outside opening hours,
+  `Category: 2000` is a coaching class (also occupied). Got this backwards
+  on a first read of the JSON alone — worth remembering if another
+  ClubSpark/Park Sports venue gets added later. A free session can also
+  arrive as one merged multi-hour block (e.g. 08:00-16:00 in a single JSON
+  entry) rather than one entry per hour; the parser splits it back into its
+  real `Interval`-sized bookable hours.
+- Address: Chiswick House Grounds, A4 entrance, W4 2RP (per the LTA's own
+  court finder — this venue's JSON itself doesn't give a postal address).

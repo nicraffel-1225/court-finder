@@ -8,6 +8,7 @@ import { Logo } from "@/components/Logo";
 import { SheetHeader } from "@/components/SheetHeader";
 import { TimeChips } from "@/components/TimeChips";
 import { VenueRows } from "@/components/VenueRows";
+import { CHISWICK_VENUE, getChiswickVenue } from "@/lib/courts/clubspark";
 import { LINK_ONLY_VENUES } from "@/lib/courts/linkOnly";
 import { getLtaVenue, LTA_VENUES, type LtaVenueConfig } from "@/lib/courts/lta";
 import { DUKES_MEADOWS_VENUE, getDukesMeadowsVenue } from "@/lib/courts/proagenda";
@@ -18,7 +19,7 @@ import type { CourtSlot } from "@/lib/courts/types";
 // in at build/deploy time.
 export const dynamic = "force-dynamic";
 
-const LIVE_VENUE_META = [...LTA_VENUES, DUKES_MEADOWS_VENUE];
+const LIVE_VENUE_META = [...LTA_VENUES, DUKES_MEADOWS_VENUE, CHISWICK_VENUE];
 
 function siteNameFromUrl(url: string): string {
   if (url.includes("better.org.uk")) return "Better";
@@ -73,6 +74,16 @@ async function findEarliestSlot(): Promise<EarliestSlot | null> {
         }
       } catch (err) {
         console.warn("Next free court: couldn't load Dukes Meadows:", err);
+      }
+    })(),
+    (async () => {
+      try {
+        const venue = await getChiswickVenue();
+        if (venue.slots[0]) {
+          candidates.push({ slot: venue.slots[0], venueName: venue.name, bookingUrl: venue.bookingUrl, providerLabel: "Park Sports" });
+        }
+      } catch (err) {
+        console.warn("Next free court: couldn't load Chiswick:", err);
       }
     })(),
   ]);
@@ -178,6 +189,17 @@ async function DukesMeadowsSection() {
   return <VenueRows venue={venue} venueKey={venue.name} providerLabel="ProAgenda" />;
 }
 
+async function ChiswickSection() {
+  let venue;
+  try {
+    venue = await getChiswickVenue();
+  } catch (err) {
+    console.warn("Couldn't load Chiswick:", err);
+    return <VenueLoadError name={CHISWICK_VENUE.name} providerLabel="Park Sports" bookingUrl={CHISWICK_VENUE.bookingUrl} />;
+  }
+  return <VenueRows venue={venue} venueKey={venue.name} providerLabel="Park Sports" />;
+}
+
 export default function Home() {
   const days = nextNDaysYmd(8);
   const checkedAt = londonTimeLabel(new Date().toISOString());
@@ -214,6 +236,9 @@ export default function Home() {
             ))}
             <Suspense fallback={<VenueSkeleton name="Dukes Meadows" />}>
               <DukesMeadowsSection />
+            </Suspense>
+            <Suspense fallback={<VenueSkeleton name="Chiswick" />}>
+              <ChiswickSection />
             </Suspense>
           </div>
         </FilterProvider>

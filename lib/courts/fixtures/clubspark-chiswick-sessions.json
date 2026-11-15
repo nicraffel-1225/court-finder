@@ -1,0 +1,92 @@
+{
+  "ResourceGroups": [
+    { "ID": "tennis-group-id", "Name": "Tennis" },
+    { "ID": "pickleball-group-id", "Name": "Pickleball" }
+  ],
+  "Resources": [
+    {
+      "ID": "court-2",
+      "Name": "Tennis Court 2",
+      "ResourceGroupID": "tennis-group-id",
+      "Days": [
+        {
+          "Date": "2026-11-17T00:00:00",
+          "Sessions": [
+            {
+              "ID": "closed-morning",
+              "Category": 8000,
+              "Name": "Closed",
+              "StartTime": 420,
+              "EndTime": 480,
+              "Interval": 60,
+              "Capacity": 0,
+              "CourtCost": 0.0
+            },
+            {
+              "ID": "free-merged-block",
+              "Category": 0,
+              "Name": "8dab53e2-ea5b-4cd9-a79d-efa9b730112b",
+              "StartTime": 480,
+              "EndTime": 600,
+              "Interval": 60,
+              "Capacity": 1,
+              "CourtCost": 13.0
+            },
+            {
+              "ID": "booked-session",
+              "Category": 1000,
+              "Name": "Booking",
+              "StartTime": 600,
+              "EndTime": 660,
+              "Interval": 60,
+              "Capacity": 0,
+              "CourtCost": 15.0
+            },
+            {
+              "ID": "coaching-class",
+              "Category": 2000,
+              "Name": "Orange Squad",
+              "StartTime": 660,
+              "EndTime": 720,
+              "Interval": 60,
+              "Capacity": 0,
+              "CourtCost": 162.0
+            },
+            {
+              "ID": "closed-evening",
+              "Category": 8000,
+              "Name": "Closed",
+              "StartTime": 720,
+              "EndTime": 1260,
+              "Interval": 540,
+              "Capacity": 0,
+              "CourtCost": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ID": "pickleball-court-1",
+      "Name": "Pickleball Court 1",
+      "ResourceGroupID": "pickleball-group-id",
+      "Days": [
+        {
+          "Date": "2026-11-17T00:00:00",
+          "Sessions": [
+            {
+              "ID": "pickleball-free",
+              "Category": 0,
+              "Name": "8dab53e2-ea5b-4cd9-a79d-efa9b730112b",
+              "StartTime": 480,
+              "EndTime": 540,
+              "Interval": 60,
+              "Capacity": 1,
+              "CourtCost": 15.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
