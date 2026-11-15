@@ -45,6 +45,16 @@ export const LTA_VENUES: LtaVenueConfig[] = [
     bookingUrl:
       "https://www.lta.org.uk/play/book-a-tennis-court/courts/southfield-rec_02ede91d-f847-442b-ae79-0744941d4e59/",
   },
+  {
+    venueId: "62a33f54-1bff-49ac-9e26-67154ef07728",
+    name: "Queen's Park",
+    address: "Queen's Park",
+    postcode: "NW6 6SG",
+    lat: 51.5292819,
+    lng: -0.2072933,
+    bookingUrl:
+      "https://www.lta.org.uk/play/book-a-tennis-court/courts/queens-park-tennis-courts_62a33f54-1bff-49ac-9e26-67154ef07728/",
+  },
 ];
 
 interface LtaAvailableSlot {

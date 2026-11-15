@@ -277,3 +277,27 @@ not-yet-built on 10 November. Checked by hand before building anything:
   real `Interval`-sized bookable hours.
 - Address: Chiswick House Grounds, A4 entrance, W4 2RP (per the LTA's own
   court finder — this venue's JSON itself doesn't give a postal address).
+
+## 15 November 2026 — Queen's Park added: same LTA provider, one-day booking window
+
+Nic sent the LTA court-finder link for Queen's Park Tennis Courts directly.
+Needed no new approval — this is the same `www.lta.org.uk/api/courtdetail/availability`
+system already approved on 10 November for Ravenscourt Park and Southfield Rec, just
+a third venue ID (`62a33f54-1bff-49ac-9e26-67154ef07728`) on the existing `lib/courts/lta.ts`
+module. Checked by hand before adding it:
+
+- Rechecked `lta.org.uk/robots.txt`: still open for the API endpoint. It does disallow
+  any URL with both `latitude` and `longitude` query params together — the court-finder
+  search-results link Nic pasted has both, but that's just how the search page encodes
+  "where you searched from"; the clean venue page we store as `bookingUrl` (and the API
+  call itself) don't use those params, so this doesn't affect us.
+- Real finding worth remembering: unlike Ravenscourt Park and Southfield Rec (both an
+  8-day availability window), Queen's Park currently only has one single day open for
+  booking (tomorrow) — every other day in the 8-day window comes back
+  `outsideBookingWindow: true` with an empty court list. Nothing to fix: the existing
+  per-day fetch in `fetchLtaVenueLive` already treats an empty `venueDetails` array as
+  "nothing free that day" rather than an error, so Queen's Park just shows fewer days
+  with free courts, which is accurate. Worth knowing if another LTA venue added later
+  also turns out to have a short booking window rather than the usual 8 days.
+- Address: Queen's Park, NW6 6SG (matches the LTA's own court-finder result for this
+  venue, and Queen's Park Tennis Courts' listed postcode elsewhere).

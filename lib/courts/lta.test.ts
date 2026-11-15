@@ -44,7 +44,7 @@ describe("parseLtaSlot", () => {
 });
 
 describe("LTA_VENUES", () => {
-  it("has exactly the two venues Nic asked about", () => {
-    expect(LTA_VENUES.map((v) => v.name)).toEqual(["Ravenscourt Park", "Southfield Rec"]);
+  it("has exactly the venues Nic asked about", () => {
+    expect(LTA_VENUES.map((v) => v.name)).toEqual(["Ravenscourt Park", "Southfield Rec", "Queen's Park"]);
   });
 });
