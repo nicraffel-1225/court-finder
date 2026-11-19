@@ -14,12 +14,44 @@ import { getLtaVenue, LTA_VENUES, type LtaVenueConfig } from "@/lib/courts/lta";
 import { DUKES_MEADOWS_VENUE, getDukesMeadowsVenue } from "@/lib/courts/proagenda";
 import { nextNDaysYmd } from "@/lib/courts/time";
 import type { CourtSlot } from "@/lib/courts/types";
+import {
+  getWeatherForVenues,
+  summariseDailyAcrossVenues,
+  type DaySummary,
+  type HourlyForecastPoint,
+  type LocationForecast,
+} from "@/lib/weather/openMeteo";
 
 // Every visit should see real current availability, not a snapshot baked
 // in at build/deploy time.
 export const dynamic = "force-dynamic";
 
 const LIVE_VENUE_META = [...LTA_VENUES, DUKES_MEADOWS_VENUE, CHISWICK_VENUE];
+
+// One shared forecast request for every live venue (see lib/weather/openMeteo.ts)
+// — cached/de-duped the same way each getXVenue() is, so every venue section
+// (and the day strip's own daily summary, below) joins the same in-flight
+// call instead of firing its own. If the whole request fails, every caller
+// just renders without weather — never blocks the court times or day strip.
+async function getAllVenueForecasts(): Promise<(LocationForecast | null)[]> {
+  try {
+    return await getWeatherForVenues(LIVE_VENUE_META);
+  } catch (err) {
+    console.warn("Weather: couldn't load forecast:", err);
+    return LIVE_VENUE_META.map(() => null);
+  }
+}
+
+async function getVenueWeather(venueMeta: (typeof LIVE_VENUE_META)[number]): Promise<HourlyForecastPoint[] | null> {
+  const all = await getAllVenueForecasts();
+  const index = LIVE_VENUE_META.indexOf(venueMeta);
+  return index >= 0 ? (all[index]?.hourly ?? null) : null;
+}
+
+async function getDailySummary(days: string[]): Promise<Record<string, DaySummary>> {
+  const all = await getAllVenueForecasts();
+  return summariseDailyAcrossVenues(all, days);
+}
 
 function siteNameFromUrl(url: string): string {
   if (url.includes("better.org.uk")) return "Better";
@@ -165,7 +197,13 @@ function VenueLoadError({ name, providerLabel, bookingUrl }: { name: string; pro
   );
 }
 
+async function DayStripSection({ days }: { days: string[] }) {
+  const dailyWeatherByDay = await getDailySummary(days);
+  return <DayStrip dailyWeatherByDay={dailyWeatherByDay} />;
+}
+
 async function LtaVenueSection({ venueConfig }: { venueConfig: LtaVenueConfig }) {
+  const weatherPromise = getVenueWeather(venueConfig);
   let venue;
   try {
     venue = await getLtaVenue(venueConfig);
@@ -173,10 +211,12 @@ async function LtaVenueSection({ venueConfig }: { venueConfig: LtaVenueConfig })
     console.warn(`Couldn't load ${venueConfig.name}:`, err);
     return <VenueLoadError name={venueConfig.name} providerLabel="LTA Play" bookingUrl={venueConfig.bookingUrl} />;
   }
-  return <VenueRows venue={venue} venueKey={venue.name} providerLabel="LTA Play" />;
+  const weather = await weatherPromise;
+  return <VenueRows venue={venue} venueKey={venue.name} providerLabel="LTA Play" weather={weather} />;
 }
 
 async function DukesMeadowsSection() {
+  const weatherPromise = getVenueWeather(DUKES_MEADOWS_VENUE);
   let venue;
   try {
     venue = await getDukesMeadowsVenue();
@@ -186,10 +226,12 @@ async function DukesMeadowsSection() {
       <VenueLoadError name={DUKES_MEADOWS_VENUE.name} providerLabel="ProAgenda" bookingUrl={DUKES_MEADOWS_VENUE.bookingUrl} />
     );
   }
-  return <VenueRows venue={venue} venueKey={venue.name} providerLabel="ProAgenda" />;
+  const weather = await weatherPromise;
+  return <VenueRows venue={venue} venueKey={venue.name} providerLabel="ProAgenda" weather={weather} />;
 }
 
 async function ChiswickSection() {
+  const weatherPromise = getVenueWeather(CHISWICK_VENUE);
   let venue;
   try {
     venue = await getChiswickVenue();
@@ -197,7 +239,8 @@ async function ChiswickSection() {
     console.warn("Couldn't load Chiswick:", err);
     return <VenueLoadError name={CHISWICK_VENUE.name} providerLabel="Park Sports" bookingUrl={CHISWICK_VENUE.bookingUrl} />;
   }
-  return <VenueRows venue={venue} venueKey={venue.name} providerLabel="Park Sports" />;
+  const weather = await weatherPromise;
+  return <VenueRows venue={venue} venueKey={venue.name} providerLabel="Park Sports" weather={weather} />;
 }
 
 export default function Home() {
@@ -225,7 +268,9 @@ export default function Home() {
         </Suspense>
 
         <FilterProvider days={days}>
-          <DayStrip />
+          <Suspense fallback={<DayStrip dailyWeatherByDay={null} />}>
+            <DayStripSection days={days} />
+          </Suspense>
           <TimeChips />
           <div className="court-sheet">
             <SheetHeader />
@@ -266,6 +311,13 @@ export default function Home() {
 
         <footer className="site-footer">
           <p>Court Finder shows free courts. Booking and payment happen on each venue&apos;s own site.</p>
+          <p>
+            Weather data by{" "}
+            <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">
+              Open-Meteo.com
+            </a>{" "}
+            (CC BY 4.0).
+          </p>
         </footer>
       </main>
     </>

@@ -172,7 +172,7 @@ button:focus-visible {
 
 .day-button {
   flex: 0 0 auto;
-  min-width: 84px;
+  min-width: 100px;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--rule);
@@ -204,6 +204,12 @@ button:focus-visible {
 .day-button-count {
   font-size: 0.75rem;
   opacity: 0.8;
+}
+
+.day-button-weather {
+  font-size: 0.72rem;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- Time chips ---- */
@@ -352,7 +358,7 @@ button:focus-visible {
 }
 
 .cell {
-  height: 44px;
+  height: 52px;
   border-radius: 8px;
 }
 
@@ -360,10 +366,22 @@ button:focus-visible {
   background: var(--ball);
   color: var(--ink);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+
+.cell-time {
+  line-height: 1.2;
+}
+
+.cell-weather {
+  font-size: 0.68rem;
+  font-weight: 500;
+  opacity: 0.65;
+  line-height: 1.2;
 }
 
 .cell--free:hover {
@@ -538,14 +556,16 @@ button:focus-visible {
   }
 
   .phone-time-button {
-    height: 44px;
+    height: 52px;
     padding: 0 14px;
     border-radius: 10px;
     background: var(--ball);
     color: var(--ink);
     font-weight: 650;
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     font-variant-numeric: tabular-nums;
   }
 
