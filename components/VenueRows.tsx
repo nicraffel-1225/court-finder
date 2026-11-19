@@ -6,6 +6,8 @@
 // or time window here never triggers a new request to any booking site.
 import { useEffect, useMemo } from "react";
 import type { CourtSlot, CourtVenue } from "@/lib/courts/types";
+import type { HourlyForecastPoint } from "@/lib/weather/openMeteo";
+import { weatherAtHour } from "@/lib/weather/openMeteo";
 import { parseFacilityLabel } from "./facility";
 import { gridColumns, matchesWindow, useFilters } from "./FilterProvider";
 import { londonDayKey, londonHour, londonTimeLabel } from "./london";
@@ -50,14 +52,24 @@ function formatPrice(pricePence: number): string {
   return Number.isInteger(pounds) ? `£${pounds}` : `£${pounds.toFixed(2)}`;
 }
 
+// "14°C · 10% rain" — just enough to tell a dry slot from a wet one at a
+// glance. null (no forecast for this hour, or the forecast couldn't be
+// loaded at all) means the slot renders with no weather tag, not an error.
+function weatherTag(point: HourlyForecastPoint | null): string | null {
+  if (!point) return null;
+  return `${Math.round(point.tempC)}°C · ${Math.round(point.rainChancePercent)}% rain`;
+}
+
 export function VenueRows({
   venue,
   venueKey,
   providerLabel,
+  weather,
 }: {
   venue: CourtVenue;
   venueKey: string;
   providerLabel: string;
+  weather: HourlyForecastPoint[] | null;
 }) {
   const { days, selectedDay, selectedWindow, hours, registerVenueSlots } = useFilters();
 
@@ -116,6 +128,7 @@ export function VenueRows({
                     const earliest = bucket[0];
                     const label = londonTimeLabel(earliest.startAt);
                     const extra = bucket.length > 1 ? ` (${bucket.length} slots)` : "";
+                    const tag = weatherTag(weatherAtHour(weather, earliest.startAt));
                     return (
                       <a
                         key={hour}
@@ -123,9 +136,10 @@ export function VenueRows({
                         href={venue.bookingUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label={`${court.name}, ${label}, free${extra}. Book on ${providerLabel}`}
+                        aria-label={`${court.name}, ${label}, free${extra}${tag ? `, ${tag}` : ""}. Book on ${providerLabel}`}
                       >
-                        {label}
+                        <span className="cell-time">{label}</span>
+                        {tag && <span className="cell-weather">{tag}</span>}
                       </a>
                     );
                   }
@@ -161,6 +175,7 @@ export function VenueRows({
                 <div className="phone-time-buttons">
                   {court.slots.map((slot) => {
                     const label = londonTimeLabel(slot.startAt);
+                    const tag = weatherTag(weatherAtHour(weather, slot.startAt));
                     return (
                       <a
                         key={slot.startAt}
@@ -168,9 +183,10 @@ export function VenueRows({
                         href={venue.bookingUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        aria-label={`${court.name}, ${label}, free. Book on ${providerLabel}`}
+                        aria-label={`${court.name}, ${label}, free${tag ? `, ${tag}` : ""}. Book on ${providerLabel}`}
                       >
-                        {label}
+                        <span className="cell-time">{label}</span>
+                        {tag && <span className="cell-weather">{tag}</span>}
                       </a>
                     );
                   })}

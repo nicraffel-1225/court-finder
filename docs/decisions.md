@@ -301,3 +301,52 @@ module. Checked by hand before adding it:
   also turns out to have a short booking window rather than the usual 8 days.
 - Address: Queen's Park, NW6 6SG (matches the LTA's own court-finder result for this
   venue, and Queen's Park Tennis Courts' listed postcode elsewhere).
+
+## 19 November 2026 — Weather added to each slot: Open-Meteo, no account needed
+
+Nic asked for a weather forecast next to each slot, so it's obvious which ones are
+worth booking. Compared three public sources before building anything:
+
+- **Open-Meteo** (`api.open-meteo.com`) — free, no API key, no account, no signup.
+  Terms (checked on their own site): free for non-commercial use under 10,000 calls/day,
+  5,000/hour, 600/minute — this site has no ads or subscriptions, so it clearly
+  qualifies. Data is CC BY 4.0, which just needs a visible credit (added to the site
+  footer, linking to open-meteo.com). For a UK coordinate it automatically blends in
+  the UK Met Office's own model (`UKMO`, listed on their docs page), so this gets
+  Met Office-quality forecasts without ever touching a Met Office account.
+- **Met Office Weather DataHub** — needs a registered account and accepting a
+  separate set of terms, and current free-tier pricing wasn't clearly stated on their
+  own site. More setup, less certain it stays free.
+- **OpenWeatherMap** — needs a signed-up API key (another secret to manage in
+  `.env.local`), smaller free daily limit.
+
+**Decision: Open-Meteo.** No secrets needed anywhere (no `.env.local` change), and it
+fits the no-paid-services rule cleanly.
+
+One caveat logged for later: Vercel shares outbound IP addresses across many apps, and
+Open-Meteo's free-tier limit is partly IP-based, so under shared-IP contention we could
+in theory get rate-limited sooner than the raw numbers suggest. Mitigated by only ever
+making **one combined request for every venue** (Open-Meteo accepts several
+comma-separated coordinates in one call and returns one result per location, in request
+order) rather than one request per venue — `lib/weather/openMeteo.ts`, cached/de-duped
+the same ~2-minute way as every `getXVenue()` call (`lib/courts/cache.ts`). If this ever
+becomes a real problem, Open-Meteo's own advice is to move the fetch to Cloudflare
+Workers instead of Vercel, since they rate-limit per Cloudflare user rather than by raw
+IP — not needed yet.
+
+Each slot shows just temperature and rain chance (Nic's choice — wind/UV were offered
+but felt like more clutter than help), matched to the forecast hour it starts in; a slot
+outside the 8-day forecast window, or any slot at all if the weather request fails,
+just renders with no weather tag rather than blocking the court times themselves.
+
+Nic then asked for a general daily forecast along the top too, on the day-strip buttons
+(Today/Tomorrow/Sat/...), not just per-slot. Added at no extra network cost: the same
+Open-Meteo request already asks for an hourly forecast per venue, and Open-Meteo accepts
+an hourly and a daily parameter in one call, so `lib/weather/openMeteo.ts` now asks for
+both together. Each day button shows a pooled low–high and the worst rain chance seen
+across the live venues for that day (`summariseDailyAcrossVenues`) — the venues are all a
+few km apart in west/northwest London, so one pooled range is more honest than picking an
+arbitrary single venue's own forecast. Streams in the same way a venue's own slots do: a
+small `Suspense` boundary around just the day strip (`DayStripSection` in `app/page.tsx`)
+means the day buttons appear immediately and the weather line fills in once that (shared,
+cached) request resolves, rather than the whole page waiting on it.
